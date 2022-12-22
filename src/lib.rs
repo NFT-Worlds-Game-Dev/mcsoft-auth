@@ -105,7 +105,13 @@ fn random_string() -> String {
         .collect()
 }
 
-async fn use_with(client_id: String, client_secret: String, redirect_uri: Url) -> anyhow::Result<()> {
+pub struct AuthInfo {
+    access_token: String,
+    name: String,
+    id: String
+}
+
+async fn use_with(client_id: String, client_secret: String, redirect_uri: Url) -> anyhow::Result<AuthInfo> {
     dotenv::dotenv().ok();
 
     match redirect_uri.domain() {
@@ -245,5 +251,9 @@ async fn use_with(client_id: String, client_secret: String, redirect_uri: Url) -
     println!("Congratulations, you authenticated to minecraft from Rust!");
     println!("access_token={} username={} uuid={}", access_token, profile.name, profile.id);
 
-    Ok(())
+    Ok(AuthInfo {
+        access_token: access_token,
+        name: profile.name,
+        id: profile.id
+    })
 }
