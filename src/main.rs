@@ -105,16 +105,8 @@ fn random_string() -> String {
         .collect()
 }
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn use_with(client_id: String, client_secret: String, redirect_uri: Url) -> anyhow::Result<()> {
     dotenv::dotenv().ok();
-
-    let client_id = env::var("CLIENT_ID").context("CLIENT_ID is needed")?;
-    let client_secret = env::var("CLIENT_SECRET").context("CLIENT_SECRET is needed")?;
-    let redirect_uri: Url = env::var("REDIRECT_URI")
-        .context("REDIRECT_URI is needed")?
-        .parse()
-        .context("redirect uri is not a valid url")?;
 
     match redirect_uri.domain() {
         Some(domain) => anyhow::ensure!(domain == "localhost" || domain == "127.0.0.1", "domain '{}' isn't valid, it must be '127.0.0.1' or 'localhost'", domain),
