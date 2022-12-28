@@ -111,7 +111,7 @@ pub struct AuthInfo {
     id: String
 }
 
-async fn use_with(client_id: String, client_secret: String, redirect_uri: Url) -> anyhow::Result<AuthInfo> {
+pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Url) -> anyhow::Result<AuthInfo> {
     dotenv::dotenv().ok();
 
     match redirect_uri.domain() {
