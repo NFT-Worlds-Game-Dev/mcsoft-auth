@@ -111,6 +111,7 @@ pub struct AuthInfo {
     id: String
 }
 
+#[tokio::main]
 pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Url) -> anyhow::Result<AuthInfo> {
     dotenv::dotenv().ok();
 
