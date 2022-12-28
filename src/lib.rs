@@ -106,9 +106,9 @@ fn random_string() -> String {
 }
 
 pub struct AuthInfo {
-    access_token: String,
-    name: String,
-    id: String
+    pub access_token: String,
+    pub name: String,
+    pub id: String
 }
 
 #[tokio::main]
