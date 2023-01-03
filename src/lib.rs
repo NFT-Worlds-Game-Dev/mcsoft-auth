@@ -172,12 +172,13 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
         .await?
         .json()
         .await?;
-    let access_token = access_token.access_token;
+    let access_token_returned = access_token;
+    println!("{}", access_token_returned.access_token);
     let json = serde_json::json!({
         "Properties": {
             "AuthMethod": "RPS",
             "SiteName": "user.auth.xboxlive.com",
-            "RpsTicket": format!("d={}", access_token),
+            "RpsTicket": format!("d={}", access_token_returned.access_token),
         },
         "RelyingParty": "http://auth.xboxlive.com",
         "TokenType": "JWT"
