@@ -16,7 +16,7 @@ pub struct Query {
 
 #[derive(Deserialize)]
 pub struct AccessToken {
-    pub access_token: String,
+    pub token: String,
 }
 
 #[derive(Deserialize)]
@@ -172,13 +172,13 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
         .await?
         .json()
         .await?;
-    let access_token_returned = access_token;
-    println!("{}", access_token_returned.access_token);
+    let access_token_returned = access_token.token;
+    println!("{}", access_token_returned);
     let json = serde_json::json!({
         "Properties": {
             "AuthMethod": "RPS",
             "SiteName": "user.auth.xboxlive.com",
-            "RpsTicket": format!("d={}", access_token_returned.access_token),
+            "RpsTicket": format!("d={}", access_token_returned),
         },
         "RelyingParty": "http://auth.xboxlive.com",
         "TokenType": "JWT"
@@ -219,7 +219,7 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
         .await?
         .json()
         .await?;
-    let access_token = access_token.access_token;
+    let access_token = access_token_returned;
 
     println!("Checking for game ownership.");
     // i don't know how to do signature verification, so we just have to assume the signatures are
