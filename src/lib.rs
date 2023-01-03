@@ -17,7 +17,6 @@ pub struct Query {
 
 #[derive(Deserialize)]
 pub struct AccessToken {
-    pub error: String,
     pub access_token: String,
 }
 
