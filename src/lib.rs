@@ -3,6 +3,7 @@ use anyhow::Context;
 use warp::Filter;
 use std::sync::mpsc;
 use serde::Deserialize;
+use serde_json::Map;
 use std::borrow::Cow;
 use rand::Rng;
 use rand::distributions::Alphanumeric;
@@ -160,7 +161,7 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
     println!("{}", &query.code);
 
     println!("Now getting the access token.");
-    let access_token: String = client
+    let access_token: AccessToken = client
         .post("https://login.live.com/oauth20_token.srf")
         .form(&[
             ("client_id", client_id),
@@ -173,8 +174,7 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
         .await?
         .json()
         .await?;
-    let access_token_returned = access_token;
-    println!("{}", access_token_returned);
+    let access_token_returned = access_token.access_token;
     let json = serde_json::json!({
         "Properties": {
             "AuthMethod": "RPS",
@@ -211,7 +211,7 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
         .await?;
     let (token, _) = auth_with_xsts.extract_essential_information()?;
     println!("Now authenticating with Minecraft.");
-    let access_token: AccessToken = client
+    let access_token_returned: AccessToken = client
         .post("https://api.minecraftservices.com/authentication/login_with_xbox")
         .json(&serde_json::json!({
             "identityToken": format!("XBL3.0 x={};{}", user_hash, token)
@@ -227,7 +227,7 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
     // valid :)
     let store: Store = client
         .get("https://api.minecraftservices.com/entitlements/mcstore")
-        .bearer_auth(&access_token)
+        .bearer_auth(&access_token.access_token)
         .send()
         .await?
         .json()
@@ -247,17 +247,17 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
 
     let profile: Profile = client
         .get("https://api.minecraftservices.com/minecraft/profile")
-        .bearer_auth(&access_token)
+        .bearer_auth(&access_token.access_token)
         .send()
         .await?
         .json()
         .await?;
 
     println!("Congratulations, you authenticated to minecraft from Rust!");
-    println!("access_token={} username={} uuid={}", access_token, profile.name, profile.id);
+    println!("access_token={} username={} uuid={}", access_token.access_token, profile.name, profile.id);
 
     Ok(AuthInfo {
-        access_token: access_token,
+        access_token: access_token.access_token,
         name: profile.name,
         id: profile.id
     })
