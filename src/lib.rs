@@ -207,7 +207,7 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
         .await?;
     let (token, _) = auth_with_xsts.extract_essential_information()?;
     println!("Now authenticating with Minecraft.");
-    let access_token_returned: AccessToken = client
+    let access_token: AccessToken = client
         .post("https://api.minecraftservices.com/authentication/login_with_xbox")
         .json(&serde_json::json!({
             "identityToken": format!("XBL3.0 x={};{}", user_hash, token)
@@ -216,7 +216,7 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
         .await?
         .json()
         .await?;
-    let access_token = access_token;
+    let access_token = access_token.access_token;
 
     // i own the game, and everyone else on the dev team does too, lets skip this step.
 
