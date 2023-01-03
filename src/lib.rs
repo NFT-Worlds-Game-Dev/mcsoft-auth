@@ -165,7 +165,6 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
         .post("https://login.live.com/oauth20_token.srf")
         .form(&[
             ("client_id", client_id),
-            ("client_secret", client_secret),
             ("code", query.code),
             ("redirect_uri", redirect_uri.to_string()),
             ("grant_type", "authorization_code".to_string()),
