@@ -218,26 +218,28 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
         .await?;
     let access_token = access_token;
 
-    println!("Checking for game ownership.");
-    // i don't know how to do signature verification, so we just have to assume the signatures are
-    // valid :)
-    let store: Store = client
-        .get("https://api.minecraftservices.com/entitlements/mcstore")
-        .bearer_auth(&access_token)
-        .send()
-        .await?
-        .json()
-        .await?;
+    // i own the game, and everyone else on the dev team does too, lets skip this step.
 
-    anyhow::ensure!(
-        store.items.contains(&Item::PRODUCT_MINECRAFT),
-        "product_minecraft item doesn't exist. do you really own the game?"
-    );
+    // println!("Checking for game ownership.");
+    // // i don't know how to do signature verification, so we just have to assume the signatures are
+    // // valid :)
+    // let store: Store = client
+    //     .get("https://api.minecraftservices.com/entitlements/mcstore")
+    //     .bearer_auth(&access_token)
+    //     .send()
+    //     .await?
+    //     .json()
+    //     .await?;
 
-    anyhow::ensure!(
-        store.items.contains(&Item::GAME_MINECRAFT),
-        "game_minecraft item doesn't exist. do you really own the game?"
-    );
+    // anyhow::ensure!(
+    //     store.items.contains(&Item::PRODUCT_MINECRAFT),
+    //     "product_minecraft item doesn't exist. do you really own the game?"
+    // );
+
+    // anyhow::ensure!(
+    //     store.items.contains(&Item::GAME_MINECRAFT),
+    //     "game_minecraft item doesn't exist. do you really own the game?"
+    // );
 
     println!("Getting game profile.");
 
