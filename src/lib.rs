@@ -156,9 +156,6 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
     anyhow::ensure!(query.state == state, "state mismatch: got state '{}' from query, but expected state was '{}'", query.state, state);
 
     let client = reqwest::Client::new();
-
-    println!("{}", &query.code);
-
     println!("Now getting the access token.");
     let access_token: AccessToken = client
         .post("https://login.live.com/oauth20_token.srf")
@@ -172,12 +169,13 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
         .await?
         .json()
         .await?;
-    let access_token_returned = access_token.access_token;
+    let access_token = access_token.access_token;
+    println!("{}", access_token);
     let json = serde_json::json!({
         "Properties": {
             "AuthMethod": "RPS",
             "SiteName": "user.auth.xboxlive.com",
-            "RpsTicket": format!("d={}", access_token_returned),
+            "RpsTicket": format!("d={}", access_token),
         },
         "RelyingParty": "http://auth.xboxlive.com",
         "TokenType": "JWT"
@@ -218,14 +216,14 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
         .await?
         .json()
         .await?;
-    let access_token = access_token_returned;
+    let access_token = access_token;
 
     println!("Checking for game ownership.");
     // i don't know how to do signature verification, so we just have to assume the signatures are
     // valid :)
     let store: Store = client
         .get("https://api.minecraftservices.com/entitlements/mcstore")
-        .bearer_auth(&access_token.access_token)
+        .bearer_auth(&access_token)
         .send()
         .await?
         .json()
@@ -245,17 +243,17 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
 
     let profile: Profile = client
         .get("https://api.minecraftservices.com/minecraft/profile")
-        .bearer_auth(&access_token.access_token)
+        .bearer_auth(&access_token)
         .send()
         .await?
         .json()
         .await?;
 
     println!("Congratulations, you authenticated to minecraft from Rust!");
-    println!("access_token={} username={} uuid={}", access_token.access_token, profile.name, profile.id);
+    println!("access_token={} username={} uuid={}", access_token, profile.name, profile.id);
 
     Ok(AuthInfo {
-        access_token: access_token.access_token,
+        access_token: access_token,
         name: profile.name,
         id: profile.id
     })
