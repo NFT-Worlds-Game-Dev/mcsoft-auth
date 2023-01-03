@@ -16,7 +16,8 @@ pub struct Query {
 
 #[derive(Deserialize)]
 pub struct AccessToken {
-    pub token: String,
+    pub error: String,
+    pub access_token: String,
 }
 
 #[derive(Deserialize)]
@@ -172,8 +173,8 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
         .await?
         .json()
         .await?;
-    let access_token_returned = access_token.token;
-    println!("{}", access_token_returned);
+    let access_token_returned = access_token.access_token;
+    println!("{}", access_token.error);
     let json = serde_json::json!({
         "Properties": {
             "AuthMethod": "RPS",
