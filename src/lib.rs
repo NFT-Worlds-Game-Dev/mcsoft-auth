@@ -156,6 +156,8 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
 
     let client = reqwest::Client::new();
 
+    println!("{}", &query.code);
+
     println!("Now getting the access token.");
     let access_token: AccessToken = client
         .post("https://login.live.com/oauth20_token.srf")
