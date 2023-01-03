@@ -160,21 +160,21 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
     println!("{}", &query.code);
 
     println!("Now getting the access token.");
-    let access_token: AccessToken = client
+    let access_token: String = client
         .post("https://login.live.com/oauth20_token.srf")
         .form(&[
             ("client_id", client_id),
             ("client_secret", client_secret),
             ("code", query.code),
+            ("redirect_uri", redirect_uri.to_string()),
             ("grant_type", "authorization_code".to_string()),
-            ("redirect_uri", redirect_uri.to_string())
         ])
         .send()
         .await?
         .json()
         .await?;
-    let access_token_returned = access_token.access_token;
-    println!("{}", access_token.error);
+    let access_token_returned = access_token;
+    println!("{}", access_token_returned);
     let json = serde_json::json!({
         "Properties": {
             "AuthMethod": "RPS",
