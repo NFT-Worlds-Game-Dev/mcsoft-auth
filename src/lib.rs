@@ -109,6 +109,8 @@ fn random_string() -> String {
 pub struct AuthInfo {
     pub access_token: String,
     pub name: String,
+    pub xbl_code: String,
+    pub xsts: String,
     pub id: String
 }
 
@@ -155,6 +157,7 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
     anyhow::ensure!(query.state == state, "state mismatch: got state '{}' from query, but expected state was '{}'", query.state, state);
 
     let client = reqwest::Client::new();
+
     println!("Now getting the access token.");
     let access_token: AccessToken = client
         .post("https://login.live.com/oauth20_token.srf")
@@ -187,12 +190,12 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
         .await?
         .json()
         .await?;
-    let (token, user_hash) = auth_with_xbl.extract_essential_information()?;
+    let (xbl_token, user_hash) = auth_with_xbl.extract_essential_information()?;
     println!("Now getting an Xbox Live Security Token (XSTS).");
     let json = serde_json::json!({
         "Properties": {
             "SandboxId": "RETAIL",
-            "UserTokens": [token]
+            "UserTokens": [xbl_token]
         },
         "RelyingParty": "rp://api.minecraftservices.com/",
         "TokenType": "JWT"
@@ -255,6 +258,8 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
 
     Ok(AuthInfo {
         access_token: access_token,
+        xbl_code: xbl_token,
+        xsts: token,
         name: profile.name,
         id: profile.id
     })
