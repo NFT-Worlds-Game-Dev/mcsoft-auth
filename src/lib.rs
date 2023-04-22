@@ -114,6 +114,125 @@ pub struct AuthInfo {
     pub id: String
 }
 
+pub async fn use_with_xbl(client_id: String, client_secret: String, xbl: String, user_hash: String, redirect_uri: Url) -> anyhow::Result<AuthInfo> {
+    dotenv::dotenv().ok();
+
+    match redirect_uri.domain() {
+        Some(domain) => anyhow::ensure!(domain == "localhost" || domain == "127.0.0.1", "domain '{}' isn't valid, it must be '127.0.0.1' or 'localhost'", domain),
+        None => anyhow::bail!("the redirect uri must have a domain")
+    }
+
+    let port = env::var("PORT")
+        .ok()
+        .and_then(|port| match port.parse::<u16>() {
+            Ok(port) => Some(port),
+            Err(_) => {
+                eprintln!("'{}' is not a valid port, using the given redirect uri's port", port);
+                None
+            }
+        })
+        .unwrap_or_else(|| match redirect_uri.port() {
+            Some(port) => port,
+            None => {
+                eprintln!("The redirect uri '{}' doesn't have a port given, assuming port is 80", redirect_uri);
+                80
+            }
+        });
+    let state = random_string();
+    let url = format!("https://login.live.com/oauth20_authorize.srf\
+?client_id={}\
+&response_type=code\
+&redirect_uri={}\
+&scope=XboxLive.signin%20offline_access\
+&state={}", client_id, redirect_uri, state);
+
+    if let Err(error) = webbrowser::open(&url) {
+        println!("error opening browser: {}", error);
+        println!("use this link instead:\n{}", url)
+    }
+
+    println!("Now awaiting code.");
+    let query = receive_query(port).await;
+
+    anyhow::ensure!(query.state == state, "state mismatch: got state '{}' from query, but expected state was '{}'", query.state, state);
+
+    let client = reqwest::Client::new();
+
+    println!("Now getting an Xbox Live Security Token (XSTS).");
+    let json = serde_json::json!({
+        "Properties": {
+            "SandboxId": "RETAIL",
+            "UserTokens": [xbl]
+        },
+        "RelyingParty": "rp://api.minecraftservices.com/",
+        "TokenType": "JWT"
+    });
+    let auth_with_xsts: AuthenticateWithXboxLiveOrXsts = client
+        .post("https://xsts.auth.xboxlive.com/xsts/authorize")
+        .json(&json)
+        .send()
+        .await?
+        .json()
+        .await?;
+    let (token, _) = auth_with_xsts.extract_essential_information()?;
+    println!("Now authenticating with Minecraft.");
+    let access_token: AccessToken = client
+        .post("https://api.minecraftservices.com/authentication/login_with_xbox")
+        .json(&serde_json::json!({
+            "identityToken": format!("XBL3.0 x={};{}", user_hash, token)
+        }))
+        .send()
+        .await?
+        .json()
+        .await?;
+    let access_token = access_token.access_token;
+
+    // i own the game, and everyone else on the dev team does too, lets skip this step.
+
+    // println!("Checking for game ownership.");
+    // // i don't know how to do signature verification, so we just have to assume the signatures are
+    // // valid :)
+    // let store: Store = client
+    //     .get("https://api.minecraftservices.com/entitlements/mcstore")
+    //     .bearer_auth(&access_token)
+    //     .send()
+    //     .await?
+    //     .json()
+    //     .await?;
+
+    // anyhow::ensure!(
+    //     store.items.contains(&Item::PRODUCT_MINECRAFT),
+    //     "product_minecraft item doesn't exist. do you really own the game?"
+    // );
+
+    // anyhow::ensure!(
+    //     store.items.contains(&Item::GAME_MINECRAFT),
+    //     "game_minecraft item doesn't exist. do you really own the game?"
+    // );
+
+    println!("Getting game profile.");
+
+    let profile: Profile = client
+        .get("https://api.minecraftservices.com/minecraft/profile")
+        .bearer_auth(&access_token)
+        .send()
+        .await?
+        .json()
+        .await?;
+
+    println!("Congratulations, you authenticated to minecraft from Rust!");
+    println!("access_token={} username={} uuid={}", access_token, profile.name, profile.id);
+
+    Ok(AuthInfo {
+        access_token: access_token,
+        xbl_code: xbl,
+        xsts: token,
+        name: profile.name,
+        id: profile.id
+    })
+}
+
+
 pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Url) -> anyhow::Result<AuthInfo> {
     dotenv::dotenv().ok();
 
