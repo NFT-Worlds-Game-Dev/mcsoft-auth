@@ -110,6 +110,7 @@ pub struct AuthInfo {
     pub access_token: String,
     pub name: String,
     pub xbl_code: String,
+    pub user_hash: String,
     pub xsts: String,
     pub id: String
 }
@@ -224,8 +225,9 @@ pub async fn use_with_xbl(client_id: String, client_secret: String, xbl: String,
     println!("access_token={} username={} uuid={}", access_token, profile.name, profile.id);
 
     Ok(AuthInfo {
-        access_token: access_token,
+        access_token,
         xbl_code: xbl,
+        user_hash,
         xsts: token,
         name: profile.name,
         id: profile.id
@@ -378,6 +380,7 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
     Ok(AuthInfo {
         access_token: access_token,
         xbl_code: xbl_token,
+        user_hash,
         xsts: token,
         name: profile.name,
         id: profile.id
