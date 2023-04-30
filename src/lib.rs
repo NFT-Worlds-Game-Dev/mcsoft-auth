@@ -8,6 +8,8 @@ use std::borrow::Cow;
 use rand::Rng;
 use rand::distributions::Alphanumeric;
 use reqwest::Url;
+use log::{info, trace, warn, error};
+use simple_logger;
 
 #[derive(Deserialize)]
 pub struct Query {
@@ -123,19 +125,22 @@ pub async fn use_with_xbl(client_id: String, client_secret: String, xbl: String,
         None => anyhow::bail!("the redirect uri must have a domain")
     }
 
+    // setup logging library
+    simple_logger::SimpleLogger::new().env().init().unwrap();
+
     let port = env::var("PORT")
         .ok()
         .and_then(|port| match port.parse::<u16>() {
             Ok(port) => Some(port),
             Err(_) => {
-                eprintln!("'{}' is not a valid port, using the given redirect uri's port", port);
+                error!("'{}' is not a valid port, using the given redirect uri's port", port);
                 None
             }
         })
         .unwrap_or_else(|| match redirect_uri.port() {
             Some(port) => port,
             None => {
-                eprintln!("The redirect uri '{}' doesn't have a port given, assuming port is 80", redirect_uri);
+                error!("The redirect uri '{}' doesn't have a port given, assuming port is 80", redirect_uri);
                 80
             }
         });
@@ -148,18 +153,18 @@ pub async fn use_with_xbl(client_id: String, client_secret: String, xbl: String,
 &state={}", client_id, redirect_uri, state);
 
     if let Err(error) = webbrowser::open(&url) {
-        println!("error opening browser: {}", error);
-        println!("use this link instead:\n{}", url)
+        error!("error opening browser: {}", error);
+        error!("use this link instead:\n{}", url)
     }
 
-    println!("Now awaiting code.");
+    info!("Now awaiting code.");
     let query = receive_query(port).await;
 
     anyhow::ensure!(query.state == state, "state mismatch: got state '{}' from query, but expected state was '{}'", query.state, state);
 
     let client = reqwest::Client::new();
 
-    println!("Now getting an Xbox Live Security Token (XSTS).");
+    info!("Now getting an Xbox Live Security Token (XSTS).");
     let json = serde_json::json!({
         "Properties": {
             "SandboxId": "RETAIL",
@@ -176,7 +181,7 @@ pub async fn use_with_xbl(client_id: String, client_secret: String, xbl: String,
         .json()
         .await?;
     let (token, _) = auth_with_xsts.extract_essential_information()?;
-    println!("Now authenticating with Minecraft.");
+    info!("Now authenticating with Minecraft.");
     let access_token: AccessToken = client
         .post("https://api.minecraftservices.com/authentication/login_with_xbox")
         .json(&serde_json::json!({
@@ -211,7 +216,7 @@ pub async fn use_with_xbl(client_id: String, client_secret: String, xbl: String,
     //     "game_minecraft item doesn't exist. do you really own the game?"
     // );
 
-    println!("Getting game profile.");
+    info!("Getting game profile.");
 
     let profile: Profile = client
         .get("https://api.minecraftservices.com/minecraft/profile")
@@ -221,8 +226,7 @@ pub async fn use_with_xbl(client_id: String, client_secret: String, xbl: String,
         .json()
         .await?;
 
-    println!("Congratulations, you authenticated to minecraft from Rust!");
-    println!("access_token={} username={} uuid={}", access_token, profile.name, profile.id);
+    info!("Congratulations, you authenticated to minecraft from Rust!");
 
     Ok(AuthInfo {
         access_token,
@@ -238,6 +242,9 @@ pub async fn use_with_xbl(client_id: String, client_secret: String, xbl: String,
 pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Url) -> anyhow::Result<AuthInfo> {
     dotenv::dotenv().ok();
 
+    // setup logging library
+    simple_logger::SimpleLogger::new().env().init().unwrap();
+
     match redirect_uri.domain() {
         Some(domain) => anyhow::ensure!(domain == "localhost" || domain == "127.0.0.1", "domain '{}' isn't valid, it must be '127.0.0.1' or 'localhost'", domain),
         None => anyhow::bail!("the redirect uri must have a domain")
@@ -248,14 +255,14 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
         .and_then(|port| match port.parse::<u16>() {
             Ok(port) => Some(port),
             Err(_) => {
-                eprintln!("'{}' is not a valid port, using the given redirect uri's port", port);
+                error!("'{}' is not a valid port, using the given redirect uri's port", port);
                 None
             }
         })
         .unwrap_or_else(|| match redirect_uri.port() {
             Some(port) => port,
             None => {
-                eprintln!("The redirect uri '{}' doesn't have a port given, assuming port is 80", redirect_uri);
+                error!("The redirect uri '{}' doesn't have a port given, assuming port is 80", redirect_uri);
                 80
             }
         });
@@ -268,18 +275,18 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
 &state={}", client_id, redirect_uri, state);
 
     if let Err(error) = webbrowser::open(&url) {
-        println!("error opening browser: {}", error);
-        println!("use this link instead:\n{}", url)
+        error!("error opening browser: {}", error);
+        error!("use this link instead:\n{}", url)
     }
 
-    println!("Now awaiting code.");
+    info!("Now awaiting code.");
     let query = receive_query(port).await;
 
     anyhow::ensure!(query.state == state, "state mismatch: got state '{}' from query, but expected state was '{}'", query.state, state);
 
     let client = reqwest::Client::new();
 
-    println!("Now getting the access token.");
+    info!("Now getting the access token.");
     let access_token: AccessToken = client
         .post("https://login.live.com/oauth20_token.srf")
         .form(&[
@@ -293,7 +300,6 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
         .json()
         .await?;
     let access_token = access_token.access_token;
-    println!("{}", access_token);
     let json = serde_json::json!({
         "Properties": {
             "AuthMethod": "RPS",
@@ -303,7 +309,7 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
         "RelyingParty": "http://auth.xboxlive.com",
         "TokenType": "JWT"
     });
-    println!("Now authenticating with Xbox Live.");
+    info!("Now authenticating with Xbox Live.");
     let auth_with_xbl: AuthenticateWithXboxLiveOrXsts = client
         .post("https://user.auth.xboxlive.com/user/authenticate")
         .json(&json)
@@ -312,7 +318,7 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
         .json()
         .await?;
     let (xbl_token, user_hash) = auth_with_xbl.extract_essential_information()?;
-    println!("Now getting an Xbox Live Security Token (XSTS).");
+    info!("Now getting an Xbox Live Security Token (XSTS).");
     let json = serde_json::json!({
         "Properties": {
             "SandboxId": "RETAIL",
@@ -329,7 +335,7 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
         .json()
         .await?;
     let (token, _) = auth_with_xsts.extract_essential_information()?;
-    println!("Now authenticating with Minecraft.");
+    info!("Now authenticating with Minecraft.");
     let access_token: AccessToken = client
         .post("https://api.minecraftservices.com/authentication/login_with_xbox")
         .json(&serde_json::json!({
@@ -364,7 +370,7 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
     //     "game_minecraft item doesn't exist. do you really own the game?"
     // );
 
-    println!("Getting game profile.");
+    info!("Getting game profile.");
 
     let profile: Profile = client
         .get("https://api.minecraftservices.com/minecraft/profile")
@@ -374,8 +380,7 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
         .json()
         .await?;
 
-    println!("Congratulations, you authenticated to minecraft from Rust!");
-    println!("access_token={} username={} uuid={}", access_token, profile.name, profile.id);
+    info!("Congratulations, you authenticated to minecraft from Rust!");
 
     Ok(AuthInfo {
         access_token: access_token,
