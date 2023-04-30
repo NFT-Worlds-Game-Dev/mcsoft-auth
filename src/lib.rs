@@ -3,13 +3,11 @@ use anyhow::Context;
 use warp::Filter;
 use std::sync::mpsc;
 use serde::Deserialize;
-use serde_json::Map;
 use std::borrow::Cow;
 use rand::Rng;
 use rand::distributions::Alphanumeric;
 use reqwest::Url;
-use log::{info, trace, warn, error};
-use simple_logger;
+use log::{info, error};
 
 #[derive(Deserialize)]
 pub struct Query {
@@ -125,9 +123,6 @@ pub async fn use_with_xbl(client_id: String, client_secret: String, xbl: String,
         None => anyhow::bail!("the redirect uri must have a domain")
     }
 
-    // setup logging library
-    simple_logger::SimpleLogger::new().env().init().unwrap();
-
     let port = env::var("PORT")
         .ok()
         .and_then(|port| match port.parse::<u16>() {
@@ -218,9 +213,6 @@ pub async fn use_with_xbl(client_id: String, client_secret: String, xbl: String,
 
 pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Url) -> anyhow::Result<AuthInfo> {
     dotenv::dotenv().ok();
-
-    // setup logging library
-    simple_logger::SimpleLogger::new().env().init().unwrap();
 
     match redirect_uri.domain() {
         Some(domain) => anyhow::ensure!(domain == "localhost" || domain == "127.0.0.1", "domain '{}' isn't valid, it must be '127.0.0.1' or 'localhost'", domain),
