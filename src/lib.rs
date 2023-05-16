@@ -1,5 +1,4 @@
 use std::env;
-use anyhow::Context;
 use warp::Filter;
 use std::sync::mpsc;
 use serde::Deserialize;
@@ -66,12 +65,11 @@ pub struct Store {
 }
 
 impl AuthenticateWithXboxLiveOrXsts {
-    pub fn extract_essential_information(self) -> anyhow::Result<(String, String)> {
+    pub fn extract_essential_information(self) -> eyre::Result<(String, String)> {
         let token = self.token;
         let user_hash = self.display_claims.xui
             .into_iter()
-            .next()
-            .context("no xui found")?
+            .next().ok_or(eyre::eyre!("Failed to get Xui"))?
             .user_hash;
 
         Ok((token, user_hash))
@@ -106,6 +104,7 @@ fn random_string() -> String {
         .collect()
 }
 
+#[derive(Clone, Debug)]
 pub struct AuthInfo {
     pub access_token: String,
     pub name: String,
@@ -115,12 +114,12 @@ pub struct AuthInfo {
     pub id: String
 }
 
-pub async fn use_with_xbl(client_id: String, client_secret: String, xbl: String, user_hash: String, redirect_uri: Url) -> anyhow::Result<AuthInfo> {
+pub async fn use_with_xbl(client_id: String, _client_secret: String, xbl: String, user_hash: String, redirect_uri: Url) -> eyre::Result<AuthInfo> {
     dotenv::dotenv().ok();
 
     match redirect_uri.domain() {
-        Some(domain) => anyhow::ensure!(domain == "localhost" || domain == "127.0.0.1", "domain '{}' isn't valid, it must be '127.0.0.1' or 'localhost'", domain),
-        None => anyhow::bail!("the redirect uri must have a domain")
+        Some(domain) => eyre::ensure!(domain == "localhost" || domain == "127.0.0.1", "domain '{}' isn't valid, it must be '127.0.0.1' or 'localhost'", domain),
+        None => eyre::bail!("the redirect uri must have a domain")
     }
 
     let port = env::var("PORT")
@@ -155,7 +154,7 @@ pub async fn use_with_xbl(client_id: String, client_secret: String, xbl: String,
     info!("Now awaiting code.");
     let query = receive_query(port).await;
 
-    anyhow::ensure!(query.state == state, "state mismatch: got state '{}' from query, but expected state was '{}'", query.state, state);
+    eyre::ensure!(query.state == state, "state mismatch: got state '{}' from query, but expected state was '{}'", query.state, state);
 
     let client = reqwest::Client::new();
 
@@ -211,12 +210,12 @@ pub async fn use_with_xbl(client_id: String, client_secret: String, xbl: String,
 }
 
 
-pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Url) -> anyhow::Result<AuthInfo> {
+pub async fn use_with(client_id: String, _client_secret: String, redirect_uri: Url) -> eyre::Result<AuthInfo> {
     dotenv::dotenv().ok();
 
     match redirect_uri.domain() {
-        Some(domain) => anyhow::ensure!(domain == "localhost" || domain == "127.0.0.1", "domain '{}' isn't valid, it must be '127.0.0.1' or 'localhost'", domain),
-        None => anyhow::bail!("the redirect uri must have a domain")
+        Some(domain) => eyre::ensure!(domain == "localhost" || domain == "127.0.0.1", "domain '{}' isn't valid, it must be '127.0.0.1' or 'localhost'", domain),
+        None => eyre::bail!("the redirect uri must have a domain")
     }
 
     let port = env::var("PORT")
@@ -251,7 +250,7 @@ pub async fn use_with(client_id: String, client_secret: String, redirect_uri: Ur
     info!("Now awaiting code.");
     let query = receive_query(port).await;
 
-    anyhow::ensure!(query.state == state, "state mismatch: got state '{}' from query, but expected state was '{}'", query.state, state);
+    eyre::ensure!(query.state == state, "state mismatch: got state '{}' from query, but expected state was '{}'", query.state, state);
 
     let client = reqwest::Client::new();
 
