@@ -98,8 +98,7 @@ pub async fn receive_query(port: u16) -> Query {
             "Successfully received query"
         });
 
-    let fs = future::ready(warp::serve(route).run(([127, 0, 0, 1], port)));
-
+    tokio::task::spawn(warp::serve(route).run(([127, 0, 0, 1], port)));
 
     receiver.recv().expect("channel has hung up")
 }
