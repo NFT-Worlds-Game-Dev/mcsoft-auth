@@ -261,7 +261,7 @@ pub async fn use_with(client_id: String, _client_secret: String, redirect_uri: U
     }
 
     info!("Now awaiting code.");
-    let query = receive_query(port);
+    let query = receive_query(port).await;
     let code = query.code;
 
     eyre::ensure!(query.state == state, "state mismatch: got state '{}' from query, but expected state was '{}'", query.state, state);
