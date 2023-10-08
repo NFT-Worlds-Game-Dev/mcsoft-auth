@@ -262,6 +262,7 @@ pub async fn use_with(client_id: String, _client_secret: String, redirect_uri: U
 
     info!("Now awaiting code.");
     let query = receive_query(port);
+    let code = query.code;
 
     eyre::ensure!(query.state == state, "state mismatch: got state '{}' from query, but expected state was '{}'", query.state, state);
 
@@ -272,7 +273,7 @@ pub async fn use_with(client_id: String, _client_secret: String, redirect_uri: U
         .post("https://login.live.com/oauth20_token.srf")
         .form(&[
             ("client_id", client_id),
-            ("code", query.code),
+            ("code", code),
             ("redirect_uri", redirect_uri.to_string()),
             ("grant_type", "authorization_code".to_string()),
         ])
