@@ -162,7 +162,7 @@ pub async fn use_with_xbl(client_id: String, _client_secret: String, xbl: String
     }
 
     info!("Now awaiting code.");
-    let query = receive_query(port);
+    let query = receive_query(port).await;
 
     eyre::ensure!(query.state == state, "state mismatch: got state '{}' from query, but expected state was '{}'", query.state, state);
 
