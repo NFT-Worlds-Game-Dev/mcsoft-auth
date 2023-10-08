@@ -1,8 +1,9 @@
-use std::env;
+use std::{env, future};
 use warp::Filter;
 use std::sync::mpsc;
 use serde::Deserialize;
 use std::borrow::Cow;
+use std::time::SystemTime;
 use rand::Rng;
 use rand::distributions::Alphanumeric;
 use reqwest::Url;
@@ -17,6 +18,12 @@ pub struct Query {
 #[derive(Deserialize)]
 pub struct AccessToken {
     pub access_token: String,
+}
+
+#[derive(Deserialize)]
+pub struct AccessTokenResponse {
+    pub access_token: String,
+    pub expires_in: u128,
 }
 
 #[derive(Deserialize)]
@@ -91,7 +98,8 @@ pub async fn receive_query(port: u16) -> Query {
             "Successfully received query"
         });
 
-    tokio::task::spawn(warp::serve(route).run(([127, 0, 0, 1], port)));
+    let fs = future::ready(warp::serve(route).run(([127, 0, 0, 1], port)));
+
 
     receiver.recv().expect("channel has hung up")
 }
@@ -111,7 +119,9 @@ pub struct AuthInfo {
     pub xbl_code: String,
     pub user_hash: String,
     pub xsts: String,
-    pub id: String
+    pub id: String,
+    pub authed_at: u128,
+    pub expires_in: u128,
 }
 
 pub async fn use_with_xbl(client_id: String, _client_secret: String, xbl: String, user_hash: String, redirect_uri: Url) -> eyre::Result<AuthInfo> {
@@ -152,7 +162,7 @@ pub async fn use_with_xbl(client_id: String, _client_secret: String, xbl: String
     }
 
     info!("Now awaiting code.");
-    let query = receive_query(port).await;
+    let query = receive_query(port);
 
     eyre::ensure!(query.state == state, "state mismatch: got state '{}' from query, but expected state was '{}'", query.state, state);
 
@@ -176,7 +186,7 @@ pub async fn use_with_xbl(client_id: String, _client_secret: String, xbl: String
         .await?;
     let (token, _) = auth_with_xsts.extract_essential_information()?;
     info!("Now authenticating with Minecraft.");
-    let access_token: AccessToken = client
+    let access_token: AccessTokenResponse = client
         .post("https://api.minecraftservices.com/authentication/login_with_xbox")
         .json(&serde_json::json!({
             "identityToken": format!("XBL3.0 x={};{}", user_hash, token)
@@ -185,6 +195,7 @@ pub async fn use_with_xbl(client_id: String, _client_secret: String, xbl: String
         .await?
         .json()
         .await?;
+    let expires_in = access_token.expires_in;
     let access_token = access_token.access_token;
 
     info!("Getting game profile.");
@@ -205,7 +216,9 @@ pub async fn use_with_xbl(client_id: String, _client_secret: String, xbl: String
         user_hash,
         xsts: token,
         name: profile.name,
-        id: profile.id
+        id: profile.id,
+        authed_at: SystemTime::now().elapsed().unwrap().as_millis(),
+        expires_in
     })
 }
 
@@ -248,7 +261,7 @@ pub async fn use_with(client_id: String, _client_secret: String, redirect_uri: U
     }
 
     info!("Now awaiting code.");
-    let query = receive_query(port).await;
+    let query = receive_query(port);
 
     eyre::ensure!(query.state == state, "state mismatch: got state '{}' from query, but expected state was '{}'", query.state, state);
 
@@ -304,7 +317,7 @@ pub async fn use_with(client_id: String, _client_secret: String, redirect_uri: U
         .await?;
     let (token, _) = auth_with_xsts.extract_essential_information()?;
     info!("Now authenticating with Minecraft.");
-    let access_token: AccessToken = client
+    let access_token: AccessTokenResponse = client
         .post("https://api.minecraftservices.com/authentication/login_with_xbox")
         .json(&serde_json::json!({
             "identityToken": format!("XBL3.0 x={};{}", user_hash, token)
@@ -313,6 +326,7 @@ pub async fn use_with(client_id: String, _client_secret: String, redirect_uri: U
         .await?
         .json()
         .await?;
+    let expires_in = access_token.expires_in;
     let access_token = access_token.access_token;
 
     info!("Getting game profile.");
@@ -333,6 +347,8 @@ pub async fn use_with(client_id: String, _client_secret: String, redirect_uri: U
         user_hash,
         xsts: token,
         name: profile.name,
-        id: profile.id
+        id: profile.id,
+        authed_at: SystemTime::now().elapsed().unwrap().as_millis(),
+        expires_in,
     })
 }
