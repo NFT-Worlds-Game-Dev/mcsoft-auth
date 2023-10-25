@@ -95,7 +95,7 @@ pub async fn receive_query(port: u16) -> Query {
         .and(warp::filters::query::query())
         .map(move |query: Query| {
             sender.send(query).expect("failed to send query");
-            "Successfully received query"
+            "<script>window.close();</script>"
         });
 
     tokio::task::spawn(warp::serve(route).run(([127, 0, 0, 1], port)));
@@ -208,6 +208,8 @@ pub async fn use_with_xbl(client_id: String, _client_secret: String, xbl: String
         .await?;
 
     info!("Congratulations, you authenticated to minecraft from Rust!");
+
+
 
     Ok(AuthInfo {
         access_token,
