@@ -98,14 +98,10 @@ pub async fn receive_query(port: u16) -> Query {
             sender.send(query).expect("failed to send query");
             html(r#"<html>
                             <head></head>
-                            <body onload="waitFiveSec()"> <!--it will wait to load-->
-
-                            <!-- your html... -->
+                            <body onload="setTimeout(close, 1000)"> <!--it will wait to load-->
                             <script>
-                            function waitFiveSec(){
-                                    setTimeout(function() {
-                                        window.close();
-                                    }, 5000);
+                            function close(){
+                                    window.close();
                             }
                             </script>
 
