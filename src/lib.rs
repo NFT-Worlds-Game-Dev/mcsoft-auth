@@ -100,7 +100,7 @@ pub async fn receive_query(port: u16) -> Query {
                             <head>
                             <script>window.close()</script>
                             </head>
-                        </html>"#)
+                        </html>"#);
         });
 
     tokio::task::spawn(warp::serve(route).run(([127, 0, 0, 1], port)));
