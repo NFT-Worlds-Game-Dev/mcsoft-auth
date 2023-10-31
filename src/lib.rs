@@ -115,7 +115,7 @@ pub async fn receive_query(port: u16) -> Query {
 
     let (addr, server) = warp::serve(route)
         .bind_with_graceful_shutdown(([127, 0, 0, 1], port), async {
-            rx.await?.ok();
+            rx.await.ok();
         });
 
     // Spawn the server into a runtime
