@@ -96,10 +96,24 @@ pub async fn receive_query(port: u16) -> Query {
         .and(warp::filters::query::query())
         .map(move |query: Query| {
             sender.send(query).expect("failed to send query");
-            "Success"
+            html(r#"<html>
+                            <head></head>
+                            <body onload="waitFiveSec()"> <!--it will wait to load-->
+
+                            <!-- your html... -->
+                            <script>
+                            function waitFiveSec(){
+                                    setTimeout(function() {
+                                        window.close();
+                                    }, 5000);
+                            }
+                            </script>
+
+                            </body>
+                           </html>
+                            "#)
         });
     tokio::task::spawn(warp::serve(route).run(([127, 0, 0, 1], port)));
-    path("lib.min.js").map(|| with_header("window.close();", "content-type", "text/javascript"));
     receiver.recv().expect("channel has hung up")
 }
 
