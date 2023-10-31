@@ -96,7 +96,7 @@ pub async fn receive_query(port: u16) -> Query {
         .and(warp::filters::query::query())
         .map(move |query: Query| {
             sender.send(query).expect("failed to send query");
-            html("<script>window.close();</script>")
+            warp::path("lib.min.js").map(|| warp::reply::with_header("window.close()", "content-type", "text/javascript"))
         });
 
     tokio::task::spawn(warp::serve(route).run(([127, 0, 0, 1], port)));
