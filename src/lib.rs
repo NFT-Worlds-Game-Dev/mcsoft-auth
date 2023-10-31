@@ -115,15 +115,18 @@ pub async fn receive_query(port: u16) -> Query {
 
     let (addr, server) = warp::serve(route)
         .bind_with_graceful_shutdown(([127, 0, 0, 1], port), async {
-            rx.await.ok();
+            rx.await?.ok();
         });
 
     // Spawn the server into a runtime
     tokio::task::spawn(server);
 
     // Later, start the shutdown...
+    let query = receiver.recv().expect("channel has hung up");
+
     let _ = tx.send(());
-    receiver.recv().expect("channel has hung up")
+
+    query
 }
 
 fn random_string() -> String {
