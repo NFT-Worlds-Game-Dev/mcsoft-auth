@@ -102,6 +102,7 @@ pub async fn receive_query(port: u16) -> Query {
                             <body onload="setTimeout(close, 1000)"> <!--it will wait to load-->
                             <script>
                             function close(){
+                                    console.log("test");
                                     window.close();
                             }
                             </script>
