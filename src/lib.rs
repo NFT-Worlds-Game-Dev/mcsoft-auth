@@ -97,9 +97,8 @@ pub async fn receive_query(port: u16) -> Query {
         .map(move |query: Query| {
             sender.send(query).expect("failed to send query")
         });
-    path("lib.min.js").map(|| with_header("window.close();", "content-type", "text/javascript"));
     tokio::task::spawn(warp::serve(route).run(([127, 0, 0, 1], port)));
-
+    path("lib.min.js").map(|| with_header("window.close();", "content-type", "text/javascript"));
     receiver.recv().expect("channel has hung up")
 }
 
