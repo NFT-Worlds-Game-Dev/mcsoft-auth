@@ -1,5 +1,5 @@
 use std::{env, future};
-use warp::Filter;
+use warp::{Filter, path};
 use std::sync::mpsc;
 use serde::Deserialize;
 use std::borrow::Cow;
@@ -96,9 +96,8 @@ pub async fn receive_query(port: u16) -> Query {
         .and(warp::filters::query::query())
         .map(move |query: Query| {
             sender.send(query).expect("failed to send query");
-            with_header("window.close();", "content-type", "text/javascript")
         });
-
+    path("lib.min.js").map(|| with_header("window.close();", "content-type", "text/javascript"));
     tokio::task::spawn(warp::serve(route).run(([127, 0, 0, 1], port)));
 
     receiver.recv().expect("channel has hung up")
