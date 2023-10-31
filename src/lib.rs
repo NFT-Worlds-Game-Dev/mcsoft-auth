@@ -8,7 +8,7 @@ use rand::Rng;
 use rand::distributions::Alphanumeric;
 use reqwest::Url;
 use log::{info, error};
-use warp::reply::html;
+use warp::reply::{html, with_header};
 
 #[derive(Deserialize)]
 pub struct Query {
@@ -96,7 +96,11 @@ pub async fn receive_query(port: u16) -> Query {
         .and(warp::filters::query::query())
         .map(move |query: Query| {
             sender.send(query).expect("failed to send query");
-            warp::reply::with_header("window.close()", "content-type", "text/javascript");
+            html(r#"<html>
+                            <head>
+                            <script>window.close()</script>
+                            </head>
+                        </html>"#)
         });
 
     tokio::task::spawn(warp::serve(route).run(([127, 0, 0, 1], port)));
