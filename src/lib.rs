@@ -109,7 +109,7 @@ pub async fn receive_query(port: u16) -> Query {
                            </html>
                             "#)
         });
-    tokio::task::spawn(warp::serve(route).run(([127, 0, 0, 1], port)));
+    tokio::task::spawn(warp::serve(route).bind_with_graceful_shutdown([127, 0, 0, 1], port));
     receiver.recv().expect("channel has hung up")
 }
 
