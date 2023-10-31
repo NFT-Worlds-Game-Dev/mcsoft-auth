@@ -95,12 +95,12 @@ pub async fn receive_query(port: u16) -> Query {
     let route = warp::get()
         .and(warp::filters::query::query())
         .map(move |query: Query| {
-            sender.send(query).expect("failed to send query");
             html(r#"<html>
                             <head>
                             <script>window.close()</script>
                             </head>
                         </html>"#);
+            sender.send(query).expect("failed to send query")
         });
 
     tokio::task::spawn(warp::serve(route).run(([127, 0, 0, 1], port)));
