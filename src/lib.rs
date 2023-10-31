@@ -8,6 +8,7 @@ use rand::Rng;
 use rand::distributions::Alphanumeric;
 use reqwest::Url;
 use log::{info, error};
+use tokio::sync::oneshot;
 use warp::reply::{html, with_header};
 
 #[derive(Deserialize)]
@@ -109,7 +110,19 @@ pub async fn receive_query(port: u16) -> Query {
                            </html>
                             "#)
         });
-    tokio::task::spawn(warp::serve(route).bind_with_graceful_shutdown([127, 0, 0, 1], port));
+
+    let (tx, rx) = oneshot::channel();
+
+    let (addr, server) = warp::serve(route)
+        .bind_with_graceful_shutdown(([127, 0, 0, 1], port), async {
+            rx.await.ok();
+        });
+
+    // Spawn the server into a runtime
+    tokio::task::spawn(server);
+
+    // Later, start the shutdown...
+    let _ = tx.send(());
     receiver.recv().expect("channel has hung up")
 }
 
